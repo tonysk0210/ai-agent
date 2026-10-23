@@ -23,7 +23,7 @@ async def run_agent_loop(
     # 2. 當 can_continue 時: "這是我們代理的心臟“
     while can_continue(state):
 
-        print("* Current State:", state)  # 印出當前狀態
+        print("* 當前 State:", state)  # 印出當前狀態
 
         # 調用 planner 決定下一步要執行什麼
         action = planner(state, tools)
@@ -34,7 +34,7 @@ async def run_agent_loop(
             answer = format_answer(state)
             finish(state, answer)  # 3. 終了狀態
 
-            print("* Current State @ FINISH:", state)  # 印出當前狀態
+            print("* 當前 State @ FINISH:", state)  # 印出當前狀態
             break
 
         # 執行動作

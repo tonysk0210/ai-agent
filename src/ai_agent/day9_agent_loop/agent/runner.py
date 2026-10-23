@@ -4,7 +4,7 @@ import os
 import asyncio
 
 # MCP Client
-from mcp_client import (
+from ai_agent.day9_agent_loop.mcp_client import (
     connect,
     disconnect,
     discover_tools
