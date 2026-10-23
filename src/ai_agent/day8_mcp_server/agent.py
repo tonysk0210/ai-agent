@@ -60,9 +60,7 @@ def build_tool_descriptions(tools):
 # 計畫師函數，根據用戶請求選擇最適合的工具
 def planner(user_request, tools):
     # 1. 動態建立工具描述
-    tool_descriptions = build_tool_descriptions(
-        tools
-    )
+    tool_descriptions = build_tool_descriptions(tools)
 
     ### 將使用者輸入和工具描述組合成提示，然後將提示傳給 Ollama。 ###
     prompt = f"""
