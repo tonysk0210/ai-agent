@@ -13,6 +13,7 @@ from planner import planner
 from executor import execute_action  # 執行動作的函數 execute_tool from mcp_client
 from loop import run_agent_loop
 from answer import format_answer
+from ai_agent.day11_persistent_memory.memory import create_database
 
 load_dotenv()
 
@@ -24,6 +25,9 @@ llm = OpenAI(
 
 # 定義主函數，接收 Client 物件為參數
 async def main():
+    # 0. 創建資料庫
+    create_database()
+
     # 1. 連接到 MCP 伺服器
     client = await connect()
 

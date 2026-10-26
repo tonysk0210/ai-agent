@@ -18,6 +18,9 @@ def format_answer(state):
         使用者問題:
         {state["user_request"]}
         
+        相關的先前記憶：
+        {state["memories"]}
+        
         Tasks:
         {state["tasks"]}
         
@@ -30,7 +33,7 @@ def format_answer(state):
         Intermediate Results:
         {state["results"]}
         
-        請自然且簡潔地回答使用者。
+        請自然且簡潔地回答使用者。在有助於回答使用者問題時，請參考相關的先前記憶。
         
         請勿提及：
         - planner

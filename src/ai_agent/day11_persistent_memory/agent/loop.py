@@ -8,9 +8,12 @@ from state import (
     all_tasks_completed,
     next_step,
     can_continue,
-    finish
+    finish,
+    add_memory,
 )  # 載入狀態相關函數
 from task_planner import decompose_task  # 載入任務分解函數
+from ai_agent.day11_persistent_memory.memory import save_memory, search_semantic_memories, save_semantic_memory  # 載入記憶相關函數
+from ai_agent.day11_persistent_memory.memory_extractor import extract_memory  # 載入記憶提取函數
 
 
 # 解析決策 decision = "TASK: 取得目前時間\nTOOL: get_current_time"
@@ -47,6 +50,12 @@ async def run_agent_loop(
     # 1. 創建狀態
     state = create_state(user_request)
 
+    # 1.a. 搜尋語義記憶
+    memories = search_semantic_memories(user_request, top_k=3)
+    # 1.b. 增加記憶到 state
+    for memory in memories:
+        add_memory(state, memory)
+
     # 2. 生成計劃任務
     planned_tasks = decompose_task(user_request)
 
@@ -59,12 +68,12 @@ async def run_agent_loop(
     # 印出計劃任務
     for item in state["tasks"]:
         print("-", item["task"])
+    print("*" * 40, "\n")
 
     # 4. 當 can_continue 時: "這是我們代理的心臟“
     while can_continue(state):
 
-        print("*" * 40, "\n")
-        print("* 當前 State:", state)  # 印出當前狀態
+        print("* 每一次 loop 開始當前 State:", state)  # 印出當前狀態
 
         # --------------------------------
         # Check whether all tasks are done
@@ -76,10 +85,16 @@ async def run_agent_loop(
                 f"{state['current_step'] + 1} ---"
             )
             print("Planner Decision:")
-            print("TASK: FINISH")
+            print("TASK: Complete")
             answer = format_answer(state)
             finish(state, answer)  # 6. 終了狀態
-            print("* 當前 State @ FINISH:", state)  # 印出當前狀態
+            save_memory(user_request, answer)  # 6.a. 儲存記憶
+            fact = extract_memory(user_request, answer)  # 6.b. 提取事實
+            print("Extracted Fact:", fact)
+            if fact != "NONE":
+                save_semantic_memory(fact)  # 6.c. 儲存語義記憶
+
+            print("* 任務完成前的 State @ Complete:", state)  # 印出當前狀態
             break
 
         print(
@@ -100,7 +115,13 @@ async def run_agent_loop(
         if decision.strip().upper() == "FINISH":
             answer = format_answer(state)
             finish(state, answer)  # 7. 終了狀態
-            print("* 當前 State @ FINISH:", state)
+            save_memory(user_request, answer)  # 7.a. 儲存記憶
+            fact = extract_memory(user_request, answer)  # 7.b. 提取事實
+            print("Extracted Fact:", fact)
+            if fact != "NONE":
+                save_semantic_memory(fact)  # 7.c. 儲存語義記憶
+
+            print("* Planner 決定不調用工具 mark FINISH 時的 State @ FINISH:", state)
             break
 
         # --------------------------------

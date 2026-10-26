@@ -1,4 +1,4 @@
-# 建立狀態 update
+# 建立狀態
 def create_state(user_request, max_steps=5):
     return {
         "user_request": user_request,
@@ -9,12 +9,17 @@ def create_state(user_request, max_steps=5):
         "actions": [],
         "observations": [],
         "results": [],
+        "memories": [],
         "finished": False,
         "final_answer": ""
     }
 
+# 增加記憶 update
+def add_memory(state, memory):
+    state["memories"].append(memory)
 
-# 增加任務 update
+
+# 增加任務
 def add_task(state, task):
     state["tasks"].append({
         "task": task,
@@ -22,7 +27,7 @@ def add_task(state, task):
     })
 
 
-# 完成任務 update
+# 完成任務
 def complete_task(state, task):
     # 這邊將任務進行正規化，無論輸入的格式如何，都能正確比較 ("Generate password", "generate password", "generate_password")
     normalized_task = task.strip().lower().replace("_", " ")
@@ -38,12 +43,12 @@ def complete_task(state, task):
     return False
 
 
-# 增加結果 update
+# 增加結果
 def add_result(state, result):
     state["results"].append(result)
 
 
-# 取得未完成的任務 update
+# 取得未完成的任務
 def get_pending_tasks(state):
     return [
         item["task"]  # 放進結果串列的值
@@ -60,7 +65,7 @@ def get_pending_tasks(state):
 # get_pending_tasks 會逐筆檢查 item，只保留狀態是 "pending" 的任務，再取出其中的 "task" 值。結果是：["產生密碼"]
 
 
-# 判斷是否所有任務都已完成 update
+# 判斷是否所有任務都已完成
 def all_tasks_completed(state):
     if not state["tasks"]:
         return False

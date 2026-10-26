@@ -128,6 +128,7 @@ def search_semantic_memories(
     # 3. 計算 query 與每個記憶的餘弦相似度
     results = []
 
+    print("Calculating similarity scores...")
     for (user_message, assistant_message, embedding_json, created_at) in rows:
 
         # 4. 將 embedding 向量值從 JSON 字串轉換為 Python 列表
@@ -152,10 +153,38 @@ def search_semantic_memories(
         key=lambda item: item["score"],
         reverse=True
     )
-    print(f"Results: {len(results)}")
+    print(f"Similar Memories Results: {len(results)}")  # 打印相似記憶結果數量
 
     # print(results)
     # 9. 回傳相似度最高的前 top_k 個記憶
     # : 在這裡是 Python 的**切片（slice）**語法。就等同於：results[0:3]
     # 會取出索引 0、1、2 的項目，也就是最多前三筆。若 results 不足三筆，則會回傳現有的全部項目。
     return results[:top_k]
+
+
+# 儲存語義記憶
+def save_semantic_memory(fact):
+    connection = sqlite3.connect(DATABASE)
+    cursor = connection.cursor()
+
+    embedding = create_embedding(fact)
+
+    # 1. 產生 fact 的 embedding 向量值
+    # 2. 將 fact 和 embedding 向量值儲存到資料庫
+    cursor.execute(
+        """
+        INSERT INTO memories
+        (user_message,
+         assistant_message,
+         embedding)
+        VALUES (?, ?, ?)
+        """,
+        (
+            fact,
+            "",
+            json.dumps(embedding)
+        )
+    )
+
+    connection.commit()
+    connection.close()

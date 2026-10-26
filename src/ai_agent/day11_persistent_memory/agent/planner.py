@@ -40,7 +40,10 @@ def planner(state, tools):
     
         User Request:
         {state["user_request"]}
-    
+        
+        Relevant Previous Memories:
+        {state["memories"]}
+        
         Tasks:
         {state["tasks"]}
     
@@ -69,7 +72,7 @@ def planner(state, tools):
         3. 不要更改 task 的文字內容。
         4. 不要選擇已完成的 task。
         5. 為該 task 選擇最合適的可用工具。
-        6. 使用先前的 observation 與 intermediate results。
+        6. 使用先前的 observation，intermediate results 與 relevant previous memories。
         7. 如果動作執行失敗，請重新考慮該 task。
         8. 如果沒有待處理 task，
            只回傳以下這個詞：
@@ -81,6 +84,7 @@ def planner(state, tools):
         TOOL: <tool_name>
     
         10. 不要提供任何解釋。
+        11. 如果可以直接使用對話記憶或一般知識回答請求，或任務清單為空／NONE，則只能回覆：FINISH
         下一個決策：
         """
 
