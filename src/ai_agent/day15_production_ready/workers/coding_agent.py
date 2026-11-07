@@ -33,4 +33,4 @@ def write_code(task, research, feedback=""):
         ]
     )
 
-    return response.choices[0].message.content
+    return response

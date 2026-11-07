@@ -30,4 +30,4 @@ def research(task):
         ]
     )
 
-    return response.choices[0].message.content
+    return response

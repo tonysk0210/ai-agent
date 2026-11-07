@@ -53,7 +53,7 @@ def review(task, code):
         ]
     )
 
-    result = response.choices[0].message.content
+    result = response.strip()
 
     return json.loads(result)  # 轉換為 JSON 格式
     #         {{

@@ -16,29 +16,28 @@ def main():
 
     try:
         state = run_manager(task)
+        print("\n" + "=" * 50)
+        print(" RESEARCH")
+        print("=" * 50)
+        # 1. 印出研究結果
+        print(state["research"])
+
+        print("\n" + "=" * 50)
+        print(" CODE")
+        print("=" * 50)
+        # 2. 印出程式碼
+        print(state["code"])
+
+        print("\n" + "=" * 50)
+        print(" REVIEW")
+        print("=" * 50)
+        # 3. 印出審查結果
+        print(state["review"])
+
+        demonstrate_permissions()
     except ValueError as e:
         print(f"\nValidation error: {e}")
     return
-
-    print("\n" + "=" * 50)
-    print(" RESEARCH")
-    print("=" * 50)
-    # 1. 印出研究結果
-    print(state["research"])
-
-    print("\n" + "=" * 50)
-    print(" CODE")
-    print("=" * 50)
-    # 2. 印出程式碼
-    print(state["code"])
-
-    print("\n" + "=" * 50)
-    print(" REVIEW")
-    print("=" * 50)
-    # 3. 印出審查結果
-    print(state["review"])
-
-    demonstrate_permissions()
 
 
 if __name__ == "__main__":
