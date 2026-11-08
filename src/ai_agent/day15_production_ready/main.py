@@ -34,7 +34,7 @@ def main():
         # 3. 印出審查結果
         print(state["review"])
 
-        demonstrate_permissions()
+        demonstrate_permissions()  # 顯示權限
     except ValueError as e:
         print(f"\nValidation error: {e}")
     return

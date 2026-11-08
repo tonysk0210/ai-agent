@@ -12,6 +12,10 @@ client = OpenAI(
 
 
 # 建構工具描述字串函數
+# tools = [
+#     Tool(name="search", description="搜尋網路資料"),
+#     Tool(name="calculator", description="執行數學計算"),
+# ]
 def build_tool_descriptions(tools):
     descriptions = ""
     # 迭代所有工具並建立描述
