@@ -9,6 +9,7 @@ class AgentState(TypedDict):
     max_steps: int
     actions: list
     observations: list
+    action: str
     finished: bool
     final_answer: str
 
@@ -19,6 +20,7 @@ class AgentState(TypedDict):
 #     "max_steps": 5,
 #     "actions": [],
 #     "observations": [],
+#     "action": "",
 #     "finished": False,
 #     "final_answer": "",
 # }

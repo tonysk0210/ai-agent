@@ -20,7 +20,7 @@ async def main():
         print(tool.name)
 
     # 4. 建立 LangGraph
-    graph = build_graph(tools)
+    graph = build_graph(tools, client)
 
     user_request = input("\nUser : ")
 
@@ -31,12 +31,13 @@ async def main():
         "max_steps": 5,
         "actions": [],
         "observations": [],
+        "action": "",
         "finished": False,
         "final_answer": ""
     }
 
     # 6. 呼叫 LangGraph 並傳入初始狀態，並回傳最終狀態
-    result_state = graph.invoke(initial_state)
+    result_state = graph.ainvoke(initial_state)
 
     print("\nFinal State")
     print("-----------")
