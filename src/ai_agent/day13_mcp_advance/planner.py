@@ -23,13 +23,13 @@ def build_tool_descriptions(tools):
             Description：
             {tool.description}
             Input Schema:
-            {tool.input_schema}
+            {tool.inputSchema}
             ----------------------------
             """
     return descriptions
 
 
-# tool.input_schema = 這個 schema 描述的是工具的參數格式
+# tool.inputSchema = 這個 schema 描述的是工具的參數格式
 # {
 #     "type": "object",
 #     "properties": {
