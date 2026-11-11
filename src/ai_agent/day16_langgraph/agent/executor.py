@@ -1,4 +1,4 @@
-from mcp_client import execute_tool
+from .mcp_client import execute_tool  # 從 agent 套件匯入 mcp_client 模組中的 execute_tool。
 
 
 # 定義執行動作的函數，接收動作 action (tool_name) 和 Client 物件為參數，回傳動作的執行結果

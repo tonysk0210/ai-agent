@@ -1,4 +1,6 @@
 from langgraph.graph import StateGraph, START, END  # 匯入 StateGraph, START, END 類別
+from langgraph.types import interrupt
+from langgraph.checkpoint.memory import InMemorySaver
 
 from agent.planner import planner
 from agent.executor import execute_action
@@ -24,6 +26,7 @@ def create_planner_node(tools):
     #     "actions": [],
     #     "observations": [],
     #     "action": "",
+    #     "approval": "",
     #     "finished": False,
     #     "final_answer": "",
     # }
@@ -113,11 +116,25 @@ def answer_node(state: AgentState):
     }
 
 
+# approval_node 時暫停流程，等待外部的人類決定是否核准工具呼叫
+def approval_node(state: AgentState):
+    # 1. 呼叫 interrupt 函數，傳入一個字典，包含 message 和 action 欄位，回傳一個布林值表示是否批准
+    # LangGraph 將這個值包在 Interrupt(value=...) 中，並在暫停時透過回傳 state 的 __interrupt__ 提供給呼叫端。
+    decision = interrupt(
+        {
+            "message": "Approve this tool call?",
+            "action": state["action"]
+        }
+    )
+
+    return {"approval": decision}
+
+
 # 定義一個名為 route_after_planner 的函數，該函數接受一個 AgentState 對象作為參數，回傳 "finish" 或 "tool" 字串
 def route_after_planner(state: AgentState):
     if state["action"] == "FINISH":
         return "finish"
-    return "tool"
+    return "approval"
 
 
 # 定義一個名為 route_after_tool 的函數，該函數接受一個 AgentState 對象作為參數，回傳 "stop" 或 "continue" 字串
@@ -125,6 +142,13 @@ def route_after_tool(state: AgentState):
     if (state["current_step"] >= state["max_steps"]):
         return "stop"
     return "continue"
+
+
+# 定義一個名為 route_after_approval 的函數，該函數接受一個 AgentState 對象作為參數，回傳 "approved" 或 "rejected" 字串
+def route_after_approval(state: AgentState):
+    if state["approval"] == "yes":
+        return "approved"
+    return "rejected"
 
 
 # 定義一個名為 build_graph 的函數，該函數接受一個工具清單作為參數
@@ -135,22 +159,34 @@ def build_graph(tools, client):
     # 2. 建立 planner_node：create_planner_node(tools) 會回傳一個函數，該函數會被註冊為節點。
     # 節點函式回傳的更新欄位，必須符合 state schema：回傳的鍵要是 schema 中定義的欄位，值也要符合該欄位的型別。
     builder.add_node("planner", create_planner_node(tools))
-    # 3. 建立 tool_node：create_tool_node(client) 會回傳一個函數，該函數會被註冊為節點。
+    # 3. 建立 approval_node：approval_node 會暫停流程，等待外部的人類決定是否核准工具呼叫
+    builder.add_node("approval", approval_node)
+    # 4. 建立 tool_node：create_tool_node(client) 會回傳一個函數，該函數會被註冊為節點。
     builder.add_node("tool", create_tool_node(client))
-    # 4. 建立 answer_node：answer_node 會回傳最終答案和 finished 狀態
+    # 5. 建立 answer_node：answer_node 會回傳最終答案和 finished 狀態
     builder.add_node("answer", answer_node)
 
-    # 5. 增加條件邊，根據 route_after_planner 的回傳值決定下一步要執行的節點
+    # 6. 增加條件邊，根據 route_after_planner 的回傳值決定下一步要執行的節點
     builder.add_conditional_edges(
         "planner",  # 從 planner 節點開始判斷
         route_after_planner,  # 接收 state，回傳路由標籤
         {
-            "tool": "tool",  # 回傳 "tool" → 前往名為 tool 的節點
+            "approval": "approval",  # 回傳 "approval" → 前往名為 approval 的節點
             "finish": "answer"  # 回傳 "finish" → 前往名為 answer 的節點
         }
     )
 
-    # 6. 增加條件邊，根據 route_after_tool 的回傳值決定下一步要執行的節點
+    # 7. 增加條件邊，根據 route_after_approval 的回傳值決定下一步要執行的節點
+    builder.add_conditional_edges(
+        "approval",
+        route_after_approval,
+        {
+            "approved": "tool",
+            "rejected": "answer"
+        }
+    )
+
+    # 8. 增加條件邊，根據 route_after_tool 的回傳值決定下一步要執行的節點
     builder.add_conditional_edges(
         "tool",  # 從 tool 節點開始判斷
         route_after_tool,  # 接收 state，回傳路由標籤
@@ -159,7 +195,9 @@ def build_graph(tools, client):
             "stop": "answer"  # 回傳 "stop" → 前往名為 answer 的節點
         }
     )
-    builder.add_edge(START, "planner")  # 7. 設定圖的入口連到 "planner"，因此圖開始時會執行它
-    builder.add_edge("answer", END)  # 8. 設定 "answer" 執行後連到圖的結束點，因此圖會結束
 
-    return builder.compile()  # 9. 編譯圖並回傳
+    builder.add_edge(START, "planner")  # 9. 設定圖的入口連到 "planner"，因此圖開始時會執行它
+    builder.add_edge("answer", END)  # 10. 設定 "answer" 執行後連到圖的結束點，因此圖會結束
+
+    checkpointer = InMemorySaver()  # 建立一個儲存在記憶體中的 checkpointer。LangGraph 會用它保存每個執行緒的圖狀態與執行進度
+    return builder.compile(checkpointer=checkpointer)  # 11. 編譯圖並回傳，並把這個 checkpointer 設定到編譯後的圖上。

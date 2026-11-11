@@ -10,6 +10,7 @@ class AgentState(TypedDict):
     actions: list
     observations: list
     action: str
+    approval: str
     finished: bool
     final_answer: str
 
@@ -21,6 +22,7 @@ class AgentState(TypedDict):
 #     "actions": [],
 #     "observations": [],
 #     "action": "",
+#     "approval": "",
 #     "finished": False,
 #     "final_answer": "",
 # }
