@@ -3,7 +3,7 @@ from crewai import Task
 from agents import researcher, coder, reviewer
 
 research_task = Task(
-    description="研究自主 AI agent 的概念。說明 agent loop、工具、狀態與觀察結果。",  # 給 agent 的任務指示
+    description="研究自主 AI agent。說明 agent loop、工具、狀態與觀察結果。在完成任務前，使用 MCP Current Time 工具，並納入工具回傳的時間。",  # 給 agent 的任務指示
     expected_output="一份簡潔的自主 AI agent 技術說明。",  # 期望的輸出結果
     agent=researcher  # 使用的研究員代理
 )
@@ -20,4 +20,10 @@ review_task = Task(
     expected_output="一份程式碼審查，列出發現的問題與改進建議。",
     agent=reviewer,
     context=[coding_task]
+)
+
+memory_task = Task(
+    description="在我們上一項任務中自我介紹的那個人叫什麼名字？",
+    expected_output="那個人的名字。",
+    agent=researcher
 )
