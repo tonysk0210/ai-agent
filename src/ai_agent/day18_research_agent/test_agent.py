@@ -5,7 +5,7 @@ request = """
 """
 
 # 呼叫研究代理
-answer = research_agent(request)
+answer = research_agent(request, max_steps=100)
 
 print("\nFINAL ANSWER\n")
 print(answer)

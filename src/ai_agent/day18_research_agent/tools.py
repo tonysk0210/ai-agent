@@ -1,12 +1,26 @@
 import os
 import requests
+import json
 from dotenv import load_dotenv
+from ollama import chat
 
 load_dotenv()
 
 # BeautifulSoup 用來解析 read_webpage() 下載回來的網頁 HTML。
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs
+
+# 研究筆記清單
+research_notes = []
+# [
+#     {
+#         "source": "https://example.com/job",
+#         "finding": "職缺要求具備 Python 技能",
+#         "evidence": "熟悉 Python 程式設計及相關框架",
+#         "verified": False
+#     }
+# ]
+MODEL = "qwen3:1.7b"
 
 
 # 搜尋網頁
@@ -158,3 +172,87 @@ def read_webpage(url):
     # 第二段內容。
 
     return text[:12000]  # 回傳前 12000 個字元
+
+
+# 記錄研究發現
+def add_research_note(source, finding, evidence):
+    """
+    記錄一項重要的研究發現。
+
+    Args:
+        source: 來源的網址或名稱。
+        finding: 從來源中擷取出的具體主張或結論。
+        evidence: 來源中支持此研究發現的文字或資訊。
+
+    Returns:
+        確認訊息。
+    """
+
+    # 將研究發現加入清單
+    research_notes.append({
+        "source": source,
+        "finding": finding,
+        "evidence": evidence,
+        "verified": False
+    })
+
+    # 回傳確認訊息
+    return {
+        "status": "stored",
+        "finding": finding
+    }
+
+
+# 取得研究筆記
+def get_research_notes():
+    """
+    回傳目前為止收集到的所有研究筆記。
+    """
+
+    return [note.copy() for note in research_notes]  # 回傳研究筆記的副本
+
+
+# [
+#     {
+#         "source": "https://example.com/job",
+#         "finding": "職缺要求具備 Python 技能",
+#         "evidence": "熟悉 Python 程式設計及相關框架",
+#         "verified": False
+#     }
+# ]
+
+# 標記研究筆記為已驗證
+def mark_note_verified(source, finding):
+    """
+    將符合條件的研究筆記標記為已驗證。
+    """
+    for note in research_notes:
+
+        if (note["source"] == source and note["finding"] == finding):
+            note["verified"] = True
+
+            return {
+                "status": "verified",
+                "finding": finding
+            }
+
+    return {
+        "status": "not_found",
+        "finding": finding
+    }
+
+
+# 取得已驗證的研究筆記
+def get_verified_research_notes():
+    """
+    僅回傳已驗證的研究筆記。
+    """
+
+    return [
+        note.copy()  # 把符合條件的筆記複製一份
+        for note in research_notes  # 逐筆查看研究筆記
+        if note.get("verified", False)  # 只保留 verified 為 True 的筆記；這裡的 False 是預設值
+    ]
+# [
+#     {"finding": "要求 Python 技能", "verified": True}
+# ]
