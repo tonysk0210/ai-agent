@@ -1,6 +1,10 @@
+import os
 import requests
-# BeautifulSoup(response.text, "html.parser") 會解析下載回來的網頁 HTML；
-# 之後的 soup.select(...) 和 select_one(...) 再從中找出搜尋結果的標題、連結和摘要。
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# BeautifulSoup 用來解析 read_webpage() 下載回來的網頁 HTML。
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs
 
@@ -8,69 +12,89 @@ from urllib.parse import urlparse, parse_qs
 # 搜尋網頁
 def search_web(query, max_results=5):
     """
-    使用 DuckDuckGo 搜尋網頁。
+    使用 Tavily Search API 搜尋網頁。
     Args:
         query: 搜尋查詢。
         max_results: 搜尋結果的數量上限。
     Returns:
         搜尋結果清單。
     """
+    max_results = int(max_results)  # 將 max_results 轉換為整數
 
-    response = requests.get(
-        "https://html.duckduckgo.com/html/",
-        params={"q": query},
-        headers={"User-Agent": "Mozilla/5.0"},
-        timeout=20
+    # 從環境變數中取得 Tavily API 金鑰
+    api_key = os.getenv("TAVILY_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "找不到 TAVILY_API_KEY。請在執行環境設定 Tavily API key。"
+        )
+
+    # 呼叫 Tavily Search API
+    response = requests.post(
+        "https://api.tavily.com/search",
+        json={
+            "api_key": api_key,
+            "query": query,
+            "max_results": max_results,
+        },
+        timeout=30,
     )
+    # response = <Response [200]>
+    #
+    # response.status_code  # HTTP 狀態碼，例如 200
+    # response.url          # 最終回應網址
+    # response.headers      # 回應標頭
+    # response.text         # 解碼後的回應本文；這裡預期是 HTML
+    # response.content      # 回應本文的 bytes 版本
 
     response.raise_for_status()
+    payload = response.json()  # 解析 JSON 格式的回應本文
+    # payload = {
+    #     "query": "AI agents software development",
+    #     "results": [
+    #         {
+    #             "title": "搜尋結果標題",
+    #             "url": "https://example.com/article",
+    #             "content": "搜尋結果的文字摘要",
+    #             "score": 0.92
+    #         }
+    #     ],
+    #     "response_time": 0.8,
+    #     "request_id": "示意用的請求 ID"
+    # }
 
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    results = []
-
+    return [
+        {
+            "title": result.get("title", ""),
+            "url": result.get("url", ""),
+            "snippet": result.get("content", ""),
+        }
+        for result in payload.get("results", [])[:max_results]
+    ]
     # [
-    #     <div class="result">第一筆結果的 HTML...</div>,
-    #     <div class="result">第二筆結果的 HTML...</div>,
+    #     {
+    #         "title": "搜尋結果標題",
+    #         "url": "https://example.com/article",
+    #         "snippet": "搜尋結果摘要"
+    #     },
+    #     {
+    #         "title": "另一筆搜尋結果標題",
+    #         "url": "https://example.org/page",
+    #         "snippet": "另一筆搜尋結果摘要"
+    #     }
     # ]
-    for result in soup.select(".result")[:max_results]:
 
-        # title_element = <某個 HTML 標籤 class="result__title">標題內容</某個 HTML 標籤>
-        # link_element = <某個 HTML 標籤 class="result__a" href="https://example.com">連結文字</某個 HTML 標籤>
-        # snippet_element = <某個 HTML 標籤 class="result__snippet">摘要內容</某個 HTML 標籤>
-        title_element = result.select_one(".result__title")
-        link_element = result.select_one(".result__a")
-        snippet_element = result.select_one(".result__snippet")
-
-        # 如果沒有連結，則跳過此結果
-        if not link_element:
-            continue
-
-        results.append({
-            "title": (title_element.get_text(" ", strip=True)
-                      if title_element
-                      else ""
-                      ),
-            "url": link_element.get("href", ""),
-            "snippet": (snippet_element.get_text(" ", strip=True)
-                        if snippet_element
-                        else ""
-                        )
-        })
-        # results = [
-        #     {
-        #         "title": "第一筆搜尋結果的標題",
-        #         "url": "https://example.com/page1",
-        #         "snippet": "第一筆搜尋結果的摘要"
-        #     },
-        #     {
-        #         "title": "第二筆搜尋結果的標題",
-        #         "url": "https://example.com/page2",
-        #         "snippet": "第二筆搜尋結果的摘要"
-        #     }
-        # ]
-
-    return results
+    # 這相當於以下較展開的寫法：
+    # output = []
+    #
+    # for result in payload.get("results", [])[:max_results]:
+    #     item = {
+    #         "title": result.get("title", ""),
+    #         "url": result.get("url", ""),
+    #         "snippet": result.get("content", ""),
+    #     }
+    #     output.append(item)
+    #
+    # return output
 
 
 # 讀取網頁
