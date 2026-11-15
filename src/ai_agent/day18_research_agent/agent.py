@@ -33,15 +33,17 @@ def research_agent(user_request, max_steps=100):
         {
             "role": "system",
             "content": (
-                "你是一位研究代理。"
-                "請使用可用工具調查使用者的需求。"
-                "請仔細遵循研究計畫。"
-                "首先搜尋相關來源。"
-                "閱讀有用的來源後，擷取重要發現，並呼叫 add_research_note 加以記錄。"
-                "記錄重要發現後，請使用 verify_finding 判斷證據是否確實支持該發現。"
-                "請持續研究，直到研究問題已獲得充分調查。"
-                "已驗證的研究發現不得為零。"
-                "請勿捏造來源或證據。"
+                "你是研究代理。必須使用工具完成研究，不可只根據自身知識回答。\n"
+                "請依序執行以下流程，每次只處理一個來源：\n"
+                "1. 呼叫 search_web 搜尋職缺資料。\n"
+                "2. 對搜尋結果呼叫 read_webpage，閱讀來源原文。\n"
+                "3. 從原文擷取一項具體技能要求，保留可支持該要求的原文證據。\n"
+                "4. 立即呼叫 add_research_note，提供 source、finding、evidence 三個參數。\n"
+                "5. 接著呼叫 verify_finding，使用完全相同的 source 和 finding，並提供 evidence。\n"
+                "6. 確認驗證結果 supported 為 true 後，再研究下一項。\n"
+                "請重複以上流程，直到取得五項已驗證的不同技能要求。\n"
+                "如果證據不足或驗證結果為 false，不能把該項算入五項；請搜尋其他來源。\n"
+                "只有五項都已驗證後才能產生最終回答。不得捏造來源或證據。"
             )
         },
         {
@@ -247,7 +249,7 @@ def generate_report(user_request, verified_notes):
                     f"{research_text}\n\n"
                     "請依照以下章節"
                     "撰寫報告：\n"
-                    
+
                     "1. 執行摘要\n"
                     "2. 緒論\n"
                     "3. 主要發現\n"
