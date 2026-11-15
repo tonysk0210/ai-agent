@@ -1,5 +1,5 @@
 from ollama import chat
-from tools import search_web, read_webpage, add_research_note, get_research_notes
+from tools import search_web, read_webpage, add_research_note, get_research_notes, verify_finding, get_verified_research_notes
 
 MODEL = "qwen3:1.7b"
 
@@ -9,10 +9,11 @@ AVAILABLE_TOOLS = {
     "read_webpage": read_webpage,
     "add_research_note": add_research_note,
     "get_research_notes": get_research_notes,
+    "verify_finding": verify_finding
 }
 
 # 可用的工具函數清單
-TOOLS = [search_web, read_webpage, add_research_note, get_research_notes]
+TOOLS = [search_web, read_webpage, add_research_note, get_research_notes, verify_finding]
 
 
 # 研究代理
@@ -46,7 +47,7 @@ def research_agent(user_request, max_steps=100):
         {
             "role": "user",
             "content": (
-                f"Research request:\n{user_request}\n\n"
+                f"研究需求：\n{user_request}\n\n"
                 f"Research plan:\n{plan}"
             )
         }
@@ -133,6 +134,36 @@ def research_agent(user_request, max_steps=100):
             #     }
             # ]
 
+            # verify_finding():
+            # messages = [
+            #     {"role": "user", "content": "請研究 AI agents"},
+            #
+            #     # 模型要求呼叫工具
+            #     Message(
+            #         role="assistant",
+            #         content="",
+            #         tool_calls=[
+            #             ToolCall(
+            #                 function=Function(
+            #                     name="verify_finding",
+            #                     arguments={
+            #                         "source": "https://example.com/article",
+            #                         "finding": "AI agents 可以使用工具",
+            #                         "evidence": "文章指出代理可以呼叫外部工具。"
+            #                     }
+            #                 )
+            #             )
+            #         ]
+            #     ),
+            #
+            #     # verify_finding() 的回傳結果
+            #     {
+            #         "role": "tool",
+            #         "content": "{'supported': True, 'explanation': '證據支持這項研究發現。'}",
+            #         "tool_name": "verify_finding"
+            #     }
+            # ]
+
     return "代理達到了最大步數，但尚未完成研究。"
 
 
@@ -157,3 +188,80 @@ def create_research_plan(user_request):
     )
 
     return response.message.content  # 回傳研究計畫
+    # "1. 搜尋相關來源\n2. 閱讀並整理證據\n3. 驗證研究發現"
+
+
+# 產生研究報告
+def generate_report(user_request, verified_notes):
+    """
+    根據已驗證的研究發現產生研究報告。
+    """
+    # verified_notes =
+    # [
+    #     {
+    #         "source": "https://example.com/article",
+    #         "finding": "AI agents 可以使用工具",
+    #         "evidence": "文章指出代理可以呼叫外部工具。",
+    #         "verified": True,
+    #     }
+    # ]
+
+    # 將已驗證的研究發現格式化為字串
+    research_text = "\n\n".join(
+        [
+            (
+                f"來源：{note['source']}\n"
+                f"發現：{note['finding']}\n"
+                f"證據：{note['evidence']}"
+            )
+            for note in verified_notes
+        ]
+    )
+    # research_text =
+    # 來源：https://example.com/article
+    # 發現：AI agents 可以使用工具
+    # 證據：文章指出代理可以呼叫外部工具。
+    #
+    # 來源：https://example.org/paper
+    # 發現：工具呼叫能擴充代理能力
+    # 證據：研究描述了代理如何呼叫外部工具。
+
+    response = chat(
+        model=MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "你是一位專業的研究報告撰寫者。"
+                    "請撰寫一份清楚且結構完整的報告，內容只能使用提供的已驗證的研究發現。"
+                    "不得捏造事實或來源。"
+                    "如果現有研究資料不足以撰寫某個章節，請明確說明。"
+                )
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"研究需求：\n"
+                    f"{user_request}\n\n"
+                    f"已驗證的研究發現：\n"
+                    f"{research_text}\n\n"
+                    "請依照以下章節"
+                    "撰寫報告：\n"
+                    
+                    "1. 執行摘要\n"
+                    "2. 緒論\n"
+                    "3. 主要發現\n"
+                    "4. 分析\n"
+                    "5. 研究限制\n"
+                    "6. 結論\n"
+                    "7. 來源\n\n"
+                    "請列出已驗證研究發現中"
+                    "使用的來源。"
+                    "不得自行編造研究發現中"
+                    "未提供的 URL。"
+                )
+            }
+        ]
+    )
+
+    return response.message.content

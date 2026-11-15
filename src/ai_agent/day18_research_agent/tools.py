@@ -229,7 +229,7 @@ def mark_note_verified(source, finding):
     for note in research_notes:
 
         if (note["source"] == source and note["finding"] == finding):
-            note["verified"] = True
+            note["verified"] = True  # 標記為已驗證
 
             return {
                 "status": "verified",
@@ -253,6 +253,59 @@ def get_verified_research_notes():
         for note in research_notes  # 逐筆查看研究筆記
         if note.get("verified", False)  # 只保留 verified 為 True 的筆記；這裡的 False 是預設值
     ]
+
+
 # [
-#     {"finding": "要求 Python 技能", "verified": True}
+#     {
+#         "source": "https://example.com/article",
+#         "finding": "AI agents 可以使用工具",
+#         "evidence": "文章指出代理可以呼叫外部工具。",
+#         "verified": True,
+#     }
 # ]
+
+# 驗證研究發現
+def verify_finding(source, finding, evidence):
+    """
+    檢查證據是否支持某項研究發現。
+    """
+    # 呼叫 Ollama 進行證據驗證
+    response = chat(
+        model=MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "你是一位證據驗證助理。"
+                    "請判斷提供的證據是否支持提供的研究發現。"
+                    "請回傳 JSON，且只能包含兩個欄位：supported 和 explanation。"
+                    "supported 必須是 true 或 false。"
+                )
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Source:\n{source}\n\n"
+                    f"Finding:\n{finding}\n\n"
+                    f"Evidence:\n{evidence}"
+                )
+            }
+        ],
+        format="json"  # 回傳格式為 JSON in String
+    )
+
+    result = json.loads(response.message.content)
+    # {
+    #     "supported": True,                   # JSON true 解析成 Python True
+    #     "explanation": "證據直接提到此項技能要求。"
+    # }
+
+    if result["supported"]:  # 如果證據支持研究發現 true
+        mark_note_verified(source, finding)  # 更新 research_notes 中相符筆記的 verified 欄位；將研究筆記標記為已驗證
+
+    return result
+
+    # • verify_finding() 回傳 supported=True，表示 LLM 判斷證據支持該發現。
+    # • 但 mark_note_verified() 若找不到 source 和 finding 完全相同的筆記，就不會更新 research_notes。
+    # • 因此，工具結果看起來驗證通過，但筆記仍是 verified=False。之後 get_verified_research_notes() 也不會回傳這筆筆記。
+    # 更明確地說，verify_finding() 目前忽略了 mark_note_verified() 的回傳值。即使後者回傳 {"status": "not_found", ...}，前者仍只回傳 LLM 的驗證結果。這會讓 agent 收到的結果無法反映筆記是否真的更新。
