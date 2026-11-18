@@ -1,5 +1,6 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
+
+from schemas import ChatRequest, ChatResponse  # 輸入的資料格式
 
 from agent import agent
 
@@ -7,27 +8,28 @@ from agent import agent
 app = FastAPI(title="AI Agent API", version="1.0.0")
 
 
-# 這是在用 Pydantic 定義一種名為 ChatRequest 的資料格式：
-# • BaseModel 是 Pydantic 提供的基底類別，用來描述並驗證資料。
-# • message: str 表示資料必須有一個叫 message 的欄位，而且它應該是字串。
-# BaseModel (Pydantic)：就像是一個真實的 Java POJO / DTO 類別 + Bean Validation
-class ChatRequest(BaseModel):
-    message: str
+# request: ChatRequest 表示 request 這個參數的型別是 ChatRequest。呼叫 /chat 時，FastAPI 會先把收到的 JSON body 解析並驗證，再建立 ChatRequest 物件交給函式。
+# response_model=ChatResponse 告訴 FastAPI：這個 API 回傳給呼叫者的資料，應該符合 ChatResponse 格式。你的 ChatResponse 定義是：
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):  # ChatRequest : {"message": "你好"}
+    try:
+        # 1. 呼叫 agent.ainvoke() 執行 agent，取得執行結果
+        result = await agent.ainvoke(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": request.message  # FastAPI 已先驗證 request body
+                    }
+                ]
+            }
+        )
+        # 2. 取得 agent 最後一則訊息的內容
+        answer = result["messages"][-1].content
+        # 3. 將答案包裝成 ChatResponse 並回傳
+        return ChatResponse(answer=answer)
 
-
-@app.post("/chat")
-async def chat(request: ChatRequest):
-    result = await agent.ainvoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": request.message # 輸入的訊息 Pydantic 驗證發生在此時！
-                }
-            ]
-        }
-    )
-
-    return {
-        "answer": result["messages"][-1].content
-    }
+    except Exception as exc:
+        print(f"Agent 執行失敗：{exc}")
+        raise HTTPException(status_code=500, detail="Agent 執行失敗_HTTP_500")
+        # detail = 設定要回傳給呼叫者的錯誤訊息。客戶端會收到類似這樣的內容
