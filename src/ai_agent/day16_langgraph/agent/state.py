@@ -3,6 +3,7 @@ from typing import TypedDict
 
 # AgentState(TypedDict) 不是要把 state 建立成一般的 class 物件，而是用來描述字典應該有哪些欄位，以及各欄位的型別。
 # 用 class 的語法，宣告一種名為 AgentState 的字典結構。
+# TypedDict (Python 內建)：就像是一個 加上了泛型的 Map<String, Object>
 class AgentState(TypedDict):
     user_request: str
     current_step: int
