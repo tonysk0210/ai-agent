@@ -25,11 +25,8 @@ async def main():
         passed = check_tool(result, test_case["expected_tool"])
 
         print(test_case["question"])
-
         print("Expected tool:", test_case["expected_tool"])
-
         print("Tool selection:", "PASS" if passed else "FAIL")
-
         print()
 
 
