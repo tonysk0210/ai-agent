@@ -28,6 +28,7 @@ dependencies = [
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.4",
     "requests>=2.34.2",
+    "tenacity>=9.2.1",
 ]
 
 [project.scripts]
