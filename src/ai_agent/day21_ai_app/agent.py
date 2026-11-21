@@ -335,12 +335,36 @@ def generate_report(user_request, verified_notes):
         messages=[
             {
                 "role": "system",
-                "content": "你是一位研究分析師。請使用清晰的 Markdown（標題與項目符號）撰寫簡潔、專業的研究報告。"
+                "content": (
+                    "你是一位專業的研究報告撰寫者。"
+                    "請撰寫一份清楚且結構完整的報告，內容只能使用提供的已驗證的研究發現。"
+                    "不得捏造事實或來源。"
+                    "如果現有研究資料不足以撰寫某個章節，請明確說明。"
+                )
             },
             {
                 "role": "user",
-                "content": f"研究主題：{user_request}\n\n已驗證的研究發現：\n{research_text}\n\n請撰寫一份結構清晰的 Markdown 報告。"
-            }
+                "content": (
+                    f"研究需求：\n"
+                    f"{user_request}\n\n"
+                    f"已驗證的研究發現：\n"
+                    f"{research_text}\n\n"
+                    "請依照以下章節"
+                    "撰寫報告：\n"
+
+                    "1. 執行摘要\n"
+                    "2. 緒論\n"
+                    "3. 主要發現\n"
+                    "4. 分析\n"
+                    "5. 研究限制\n"
+                    "6. 結論\n"
+                    "7. 來源\n\n"
+                    "請列出已驗證研究發現中"
+                    "使用的來源。"
+                    "不得自行編造研究發現中"
+                    "未提供的 URL。"
+                    "請使用清晰的 Markdown（標題與項目符號）撰寫簡潔、專業的研究報告。"
+                )}
         ]
     )
 
