@@ -105,8 +105,8 @@ async def chat(request: Request, body: ChatRequest):  # ChatRequest : {"message"
     logger.info("請求開始 request_id=%s", request_id)
 
     try:
-        # 1. 呼叫 agent.ainvoke() 執行 agent，取得執行結果，最多等 30 秒；逾時時會丟出 asyncio.TimeoutError
-        result = await agent.ainvoke.wait_for(run_agent(body.message), timeout=30)
+        # 1. 呼叫 run_agent() 執行 agent，最多等待 30 秒；逾時時 asyncio.wait_for() 會丟出 asyncio.TimeoutError。
+        result = await asyncio.wait_for(run_agent(body.message), timeout=30)
         # 2. 取得 agent 最後一則訊息的內容
         answer = result["messages"][-1].content
 
