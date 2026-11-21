@@ -1,0 +1,30 @@
+services:
+  api:
+    # 使用專案根目錄的 Dockerfile 建置 API image。
+    build: .
+
+    # 將 Windows 主機的 8000 埠轉送到容器內 Uvicorn 的 8000 埠。
+    ports:
+      - "8000:8000"
+
+    # 僅傳入 API 需要的設定；值可由專案根目錄 .env 或 shell 環境變數提供。
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      MODEL: ${MODEL:-qwen3:1.7b}
+
+    # 定期呼叫 /health，確認容器中的 FastAPI 程序可正常回應。
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+# 在這個專案中，日常啟動可在 repo 根目錄執行：docker compose up --build -d (先建置，再於背景啟動服務。)
+# image : - ai-agent-api:latest：Compose 依「專案名稱 + 服務名稱」產生的預設 image 名稱。你的專案名稱是 ai-agent，Compose 服務名稱是 api，因此是 ai-agent-api。Compose 預設會用 project-service 標記建置出的 image
+# http://localhost:8000/docs 互動式 API 文件

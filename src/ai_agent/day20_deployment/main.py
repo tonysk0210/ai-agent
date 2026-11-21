@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager  # 匯入裝飾器，讓下面的 lif
 
 from schemas import ChatRequest, ChatResponse  # 輸入的資料格式
 
+from model import OLLAMA_BASE_URL
 from agent import agent
 
 
@@ -62,7 +63,10 @@ async def ready():
         # • async with：進入區塊時開啟 client，離開時自動關閉。
         async with httpx.AsyncClient() as client:
             # Ollama 會用這個端點列出本機可用的模型．Ollama 會用這個端點列出本機可用的模型
-            response = await client.get("http://localhost:11434/api/tags", timeout=2.0)
+            response = await client.get(
+                f"{OLLAMA_BASE_URL.rstrip('/')}/api/tags",
+                timeout=2.0
+            )
 
         if response.status_code == 200:
             return {

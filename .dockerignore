@@ -1,0 +1,14 @@
+# 預設排除整個專案，避免不相關的檔案進入 Docker 建置內容。
+**
+# 將 Dockerfile 加回建置內容，讓 Docker 可以讀取建置指令。
+!Dockerfile
+# 逐層加回應用程式檔案所在的父目錄。
+!src/
+!src/ai_agent/
+!src/ai_agent/day20_deployment/
+# 只加入 Dockerfile 會複製的套件清單與 Python 模組。
+!src/ai_agent/day20_deployment/requirements.txt
+!src/ai_agent/day20_deployment/agent.py
+!src/ai_agent/day20_deployment/main.py
+!src/ai_agent/day20_deployment/model.py
+!src/ai_agent/day20_deployment/schemas.py
