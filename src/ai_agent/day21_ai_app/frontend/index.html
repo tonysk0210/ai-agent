@@ -1,5 +1,26 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>研究 AI 助理</title>-->
+<!--    <link rel="stylesheet" href="/static/style.css">-->
+<!--</head>-->
+<!--<body>-->
+<!--<main>-->
+<!--    <h1>研究 AI 助理</h1>-->
+<!--    <p>您的智慧研究助理</p>-->
+<!--    <label for="topic">研究主題</label>-->
+<!--    <textarea id="topic" placeholder="請輸入研究主題..."></textarea>-->
+<!--    <button id="researchButton">開始研究</button>-->
+<!--    <div id="status"></div>-->
+<!--    <div id="result"></div>-->
+<!--</main>-->
+<!--<script src="/static/app.js"></script>-->
+<!--</body>-->
+<!--</html>-->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,15 +28,120 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<main>
-    <h1>研究 AI 助理</h1>
-    <p>您的智慧研究助理</p>
-    <label for="topic">研究主題</label>
-    <textarea id="topic" placeholder="請輸入研究主題..."></textarea>
-    <button id="researchButton">開始研究</button>
-    <div id="status"></div>
-    <div id="result"></div>
-</main>
+<div class="app-shell">
+    <!-- Header -->
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">✦</div>
+            <div>
+                <h1>研究 AI 助理</h1>
+                <p>智慧研究助理</p>
+            </div>
+        </div>
+
+        <div class="system-status">
+            <span class="status-dot"></span>
+            <span>就緒</span>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main>
+        <section class="hero">
+            <div class="eyebrow">AI 智慧研究</div>
+            <h2>將問題轉化為<span>深入研究。</span></h2>
+            <p class="hero-text">
+                輸入研究主題，讓研究 AI Agent 為您規劃、調查、驗證，
+                並整理研究發現。
+            </p>
+        </section>
+
+        <!-- Research Input -->
+        <section class="research-card">
+            <label for="topic">研究主題</label>
+            <textarea id="topic" placeholder="例如：生成式 AI 對軟體開發的影響"></textarea>
+
+            <div class="input-footer">
+                <span id="characterCount">0 個字元</span>
+                <button id="researchButton">
+                    <span>✦</span>
+                    開始研究
+                </button>
+            </div>
+        </section>
+
+        <!-- Capabilities -->
+        <section class="capabilities">
+            <div class="capability">
+                <span class="capability-icon">◇</span>
+                <div>
+                    <strong>規劃</strong>
+                    <small>制定研究架構</small>
+                </div>
+            </div>
+
+            <div class="capability">
+                <span class="capability-icon">◌</span>
+                <div>
+                    <strong>調查</strong>
+                    <small>蒐集相關資訊</small>
+                </div>
+            </div>
+
+            <div class="capability">
+                <span class="capability-icon">✓</span>
+                <div>
+                    <strong>驗證</strong>
+                    <small>查核研究證據</small>
+                </div>
+            </div>
+
+            <div class="capability">
+                <span class="capability-icon">▤</span>
+                <div>
+                    <strong>整理</strong>
+                    <small>撰寫研究報告</small>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress -->
+        <section id="progressSection" class="result-card hidden">
+            <div class="section-heading">
+                <div>
+                    <span class="section-label">研究進度</span>
+                    <h3>正在進行研究</h3>
+                </div>
+                <div id="researchSpinner" class="spinner"></div>
+            </div>
+
+            <div class="progress-line">
+                <div id="progressBar" class="progress-fill"></div>
+            </div>
+
+            <div id="status" class="research-status">
+                正在準備研究...
+            </div>
+        </section>
+
+        <!-- Result -->
+        <section id="resultSection" class="result-card hidden">
+            <div class="section-heading">
+                <div>
+                    <span class="section-label">研究報告</span>
+                    <h3>研究發現</h3>
+                </div>
+            </div>
+
+            <article id="result" class="report"></article>
+        </section>
+
+        <!-- Error -->
+        <div id="error" class="error-message hidden"></div>
+    </main>
+
+    <footer>由 AI 研究代理協助完成</footer>
+</div>
 
 <script src="/static/app.js"></script>
 </body>
