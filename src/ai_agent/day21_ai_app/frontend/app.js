@@ -1,48 +1,3 @@
-// const button = document.getElementById("researchButton");
-// const topicInput = document.getElementById("topic");
-// const status = document.getElementById("status");
-// const result = document.getElementById("result");
-//
-// button.addEventListener("click", async (e) => {
-//     e.preventDefault(); // 阻止表單提交
-//
-//     const topic = topicInput.value.trim(); // 移除主題前後的空白字元
-//
-//     // 檢查主題是否為空
-//     if (!topic) {
-//         status.textContent = "請輸入研究主題。";
-//         return;
-//     }
-//
-//     status.textContent = "準備開始研究...";
-//     result.textContent = "";
-//
-//     try {
-//         // 1. 與伺服器通訊以取得研究結果
-//         const response = await fetch(
-//             "/chat",
-//             {
-//                 method: "POST",
-//                 headers: {"Content-Type": "application/json"},
-//                 body: JSON.stringify({message: topic}) // {"message":"什麼是 AI agents"}
-//             });
-//
-//         if (!response.ok) {
-//             throw new Error("請求失敗");
-//         }
-//
-//         // 2. 解析伺服器回應
-//         const data = await response.json();
-//
-//         status.textContent = "研究完成!✨";
-//         result.textContent = data.response;
-//
-//     } catch (error) {
-//         status.textContent = "發生錯誤。";
-//         result.textContent = "無法完成請求。";
-//     }
-// });
-
 const button = document.getElementById("researchButton");
 const topicInput = document.getElementById("topic");
 const status = document.getElementById("status");
@@ -75,27 +30,119 @@ button.addEventListener("click", async () => {
     status.textContent = "研究代理正在處理您的研究...";
 
     try {
-        const response = await fetch("/chat", {
-            method: "POST",
-            headers: {"Content-Type": "application/json",},
-            body: JSON.stringify({message: topic,}),
-        });
-
-        if (!response.ok) {
-            throw new Error("研究請求失敗，請稍後再試。");
-        }
-
-        const data = await response.json();
-
-        progressSection.classList.add("hidden");
-        resultSection.classList.remove("hidden");
-        result.textContent = data.response;
+        await startResearch(topic);
     } catch (error) {
-        progressSection.classList.add("hidden");
-        errorBox.textContent = error.message || "無法完成研究。";
+        errorBox.textContent = error.message;
         errorBox.classList.remove("hidden");
     } finally {
         button.disabled = false;
         button.innerHTML = "<span>✦</span> 開始研究";
     }
 });
+
+// 1. 清空上次的進度和報告，顯示研究進度區域。
+// 2. 用 fetch 請求 /research?topic=...，把主題送到後端。
+// 3. 確認請求成功，然後讀取回傳的串流資料。
+// 4. 把串流切成一個個 SSE 事件，解析其中的 JSON。
+// 5. 將每個事件交給 handleResearchEvent(data) 更新頁面，例如顯示進度或研究報告。
+// 簡單說，它是前端研究流程的「啟動與接收器」：送出主題，再把後端陸續傳回的事件交給頁面處理。
+async function startResearch(topic) {
+    document.getElementById("activity").innerHTML = "";
+    progressSection.classList.remove("hidden");
+    resultSection.classList.add("hidden");
+    result.textContent = "";
+    status.textContent = "正在開始研究...";
+
+    // 這行會從前端向後端送出一個 HTTP GET 請求，網址裡帶著使用者輸入的研究主題。
+    // topic = "AI agent & tools"
+    // /research?topic=AI%20agent%20%26%20tools
+    // # 收到請求後，topic 會是解碼後的原始文字
+    // research(topic="AI agent & tools")
+    const response = await fetch(`/research?topic=${encodeURIComponent(topic)}`);
+
+    if (!response.ok) {
+        throw new Error("無法開始研究，請稍後再試。");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+        const {value, done} = await reader.read();
+
+        if (done) {
+            break;
+        }
+
+        buffer += decoder.decode(value, {stream: true});
+
+        const events = buffer.split("\n\n");
+        buffer = events.pop();
+
+        for (const event of events) {
+            if (!event.startsWith("data: ")) {
+                continue;
+            }
+
+            const json = event.substring(6);
+            const data = JSON.parse(json);
+            handleResearchEvent(data);
+        }
+    }
+}
+
+// startResearch 負責接收事件，handleResearchEvent 負責判斷事件種類並更新畫面。
+function handleResearchEvent(event) {
+    if (event.type === "plan") {
+        status.textContent = "研究計畫已建立。";
+        addActivity("✓", "研究計畫已建立");
+        return;
+    }
+
+    if (event.type === "step") {
+        addActivity("●", event.message);
+        return;
+    }
+
+    if (event.type === "tool") {
+        addActivity("●", event.message);
+        status.textContent = event.message;
+        return;
+    }
+
+    if (event.type === "tool_complete") {
+        addActivity("✓", event.message);
+        return;
+    }
+
+    if (event.type === "verification") {
+        addActivity("✓", event.message);
+        return;
+    }
+
+    if (event.type === "complete") {
+        progressSection.classList.add("hidden");
+        resultSection.classList.remove("hidden");
+        result.textContent = event.report;
+        status.textContent = "研究完成。";
+    }
+}
+
+// 1. 建立一個新的 <div>，並加上 CSS class activity-item。
+// 2. 在裡面放入圖示和訊息。
+// 3. 把這個 <div> 加到頁面 id="activity" 的元素底下。
+function addActivity(icon, message) {
+    const item = document.createElement("div");
+    item.className = "activity-item";
+    item.innerHTML = `
+        <span class="activity-icon">
+            ${icon}
+        </span>
+        <span>
+            ${message}
+        </span>
+    `;
+
+    document.getElementById("activity").appendChild(item);
+}

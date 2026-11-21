@@ -17,16 +17,58 @@ TOOLS = [search_web, read_webpage, add_research_note, get_research_notes, verify
 
 
 # 研究代理
-def research_agent(user_request, max_steps=100):
+def research_agent(user_request, max_steps=100, progress_callback=None):
     """
     執行自主研究代理。
     代理必須先收集並驗證研究發現，才能結束。
     """
+
+    # 輸出訊息
+    # message = {
+    #     "type": "plan",
+    #     "message": "Research plan created",
+    #     "plan": (
+    #         "1. 搜尋相關職缺資料\n"
+    #         "2. 閱讀來源網頁並整理技能要求\n"
+    #         "3. 使用來源證據驗證研究發現"
+    #     )
+    # }
+    # {
+    #     "type": "step",
+    #     "step": 1,
+    #     "message": "Agent step 1"
+    # }
+    # {
+    #     "type": "tool",
+    #     "tool": "search_web",
+    #     "message": "Using tool: search_web"
+    # }
+    # {
+    #     "type": "verification",
+    #     "message": "Verifying research evidence"
+    # }
+    # {
+    #     "type": "tool_complete",
+    #     "tool": "verify_finding",
+    #     "message": "Completed: verify_finding"
+    # }
+    # 用於傳送目前狀態給到瀏覽器：progress_callback 會是一個函數
+    def emit(message):
+        if progress_callback:
+            progress_callback(message)
+
     plan = create_research_plan(user_request)
     print("\n" + "=" * 60)
     print("RESEARCH PLAN")
     print("=" * 60)
     print(plan)
+
+    # I. 輸出研究計劃
+    emit({
+        "type": "plan",
+        "message": "Research plan created",
+        "plan": plan
+    })
 
     # 設定初始消息
     messages = [
@@ -58,6 +100,13 @@ def research_agent(user_request, max_steps=100):
     for step in range(max_steps):
 
         print(f"\n--- Agent Step {step + 1} ---")
+
+        # II. 輸出當前步驟
+        emit({
+            "type": "step",
+            "step": step + 1,
+            "message": (f"Agent step {step + 1}")
+        })
 
         response = chat(model=MODEL, messages=messages, tools=TOOLS)
         # response = ChatResponse(
@@ -92,8 +141,42 @@ def research_agent(user_request, max_steps=100):
         # -------------------------------------------------
 
         if not response.message.tool_calls:
-            print("\n未呼叫工具，正在回傳最終答案。")
-            return response.message.content  # 回傳最終答案
+            print("\n未呼叫工具，正在處理最終答案。")
+            verified_notes = (get_verified_research_notes())
+            # verified_notes =[
+            #     {
+            #         "source": "https://example.com/article",
+            #         "finding": "AI agents 可以使用工具",
+            #         "evidence": "文章指出代理可以呼叫外部工具。",
+            #         "verified": True,
+            #     }
+            # ]
+            if verified_notes:
+                print("\n研究完成。")
+                print("已收集的驗證研究發現數量：", len(verified_notes))
+                return response.message.content
+            else:
+                print("\n代理嘗試在沒有已驗證研究發現的情況下結束。")
+                print("繼續研究...")
+                messages.append({
+                    "role": "user",
+                    "content": (
+                        "你嘗試在尚未收集任何已驗證研究發現時結束。"
+                        "你現在必須再執行一項研究操作。"
+                        "不要提供最終答案。"
+                        "請從以下操作中選擇一項：\n"
+                        "1. 呼叫 search_web 尋找其他來源。\n"
+                        "2. 呼叫 read_webpage 閱讀來源內容。\n"
+                        "3. 從來源擷取一項研究發現後，呼叫 add_research_note。\n"
+                        "4. 儲存研究發現後，呼叫 verify_finding。\n"
+                        "你下一次回覆必須呼叫一個工具。"
+                    )
+                })
+            continue
+
+        # -------------------------------------------------
+        # 執行模型要求呼叫的所有工具。
+        # -------------------------------------------------
 
         # 如果有工具呼叫
         for tool_call in response.message.tool_calls:
@@ -103,66 +186,85 @@ def research_agent(user_request, max_steps=100):
             print(f"\nCalling tool: {tool_name}")
             print(f"Arguments: {arguments}")
 
-            tool_function = AVAILABLE_TOOLS.get(tool_name)  # 取得工具函數 search_web, read_webpage
+            # III. 輸出工具名稱
+            emit({
+                "type": "tool",
+                "tool": tool_name,
+                "message": f"Using tool: {tool_name}"
+            })
+
+            # IV. 輸出驗證發現
+            if tool_name == "verify_finding":
+                emit({
+                    "type": "verification",
+                    "message": "Verifying research evidence"
+                })
+
+            tool_function = AVAILABLE_TOOLS.get(tool_name)  # 取得工具函數 search_web / read_webpage / ...
 
             # 如果工具函數不存在
             if tool_function is None:
                 result = f"Unknown tool: {tool_name}"
             else:
-                result = tool_function(**arguments)  # 呼叫工具函數
-                # 其中 **arguments 會把字典展開成關鍵字參數，等同於：
-                # result = search_web(query="AI agents", max_results=3)
+                try:
+                    result = tool_function(**arguments)  # 呼叫工具函數
+                    # 其中 **arguments 會把字典展開成關鍵字參數，等同於：
+                    # result = search_web(query="AI agents", max_results=3)
 
+                    # V. 輸出工具完成訊息
+                    emit({
+                        "type": "tool_complete",
+                        "tool": tool_name,
+                        "message": f"Completed: {tool_name}"
+                    })
+                except Exception as e:
+                    result = {
+                        "status": "error",
+                        "tool": tool_name,
+                        "error": str(e)
+                    }
+                    print(f"Tool error: {e}")
             messages.append({
                 "role": "tool",
                 "content": str(result),
                 "tool_name": tool_name
             })
             # messages = [
-            #     {"role": "user", "content": "請搜尋 AI agents"},
-            #
-            #     # 前面也會 append 模型回傳的 response.message
-            #     Message(
-            #         role="assistant",
-            #         content="",
-            #         tool_calls=[...]
-            #     ),
-            #
-            #     # 這次 append 新增的工具結果
             #     {
-            #         "role": "tool",
-            #         "content": "搜尋結果……",
-            #         "tool_name": "search_web"
-            #     }
-            # ]
-
-            # verify_finding 工具:
-            # messages = [
-            #     {"role": "user", "content": "請研究 AI agents"},
-            #
-            #     # 模型要求呼叫工具
-            #     Message(
+            #         "role": "system",
+            #         "content": "研究代理的規則……"
+            #     },
+            #     {
+            #         "role": "user",
+            #         "content": "研究需求：Python 工程師職缺需要哪些技能？"
+            #     },
+            #     Message(  # 一個 assistant Message，裡面有兩筆 ToolCall
             #         role="assistant",
             #         content="",
             #         tool_calls=[
             #             ToolCall(
             #                 function=Function(
-            #                     name="verify_finding",
-            #                     arguments={
-            #                         "source": "https://example.com/article",
-            #                         "finding": "AI agents 可以使用工具",
-            #                         "evidence": "文章指出代理可以呼叫外部工具。"
-            #                     }
+            #                     name="search_web",
+            #                     arguments={"query": "Python 工程師職缺技能"}
+            #                 )
+            #             ),
+            #             ToolCall(
+            #                 function=Function(
+            #                     name="read_webpage",
+            #                     arguments={"url": "https://example.com/job"}
             #                 )
             #             )
             #         ]
             #     ),
-            #
-            #     # verify_finding() 的回傳結果
             #     {
             #         "role": "tool",
-            #         "content": "{'supported': True, 'explanation': '證據支持這項研究發現。'}",
-            #         "tool_name": "verify_finding"
+            #         "content": "[{'title': 'Python 工程師職缺', 'url': 'https://example.com/job'}]",
+            #         "tool_name": "search_web"
+            #     },
+            #     {
+            #         "role": "tool",
+            #         "content": "網頁內容：職缺要求熟悉 Python……",
+            #         "tool_name": "read_webpage"
             #     }
             # ]
 
