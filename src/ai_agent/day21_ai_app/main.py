@@ -1,9 +1,13 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool
 import uvicorn
+
+from schemas import ChatRequest, ChatResponse
+from agent import run_agent
 
 
 # 這段是 FastAPI 應用程式的生命週期管理：在同一個地方安排啟動時要做的事，以及關閉時要做的清理。概念上類似 Spring 的 @PostConstruct 和 @PreDestroy
@@ -32,6 +36,23 @@ async def home():
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    # 檢查請求是否有消息
+    if not request.message.strip():
+        raise HTTPException(status_code=400, detail="訊息不可為空。")
+
+    try:
+        # 1. 呼叫 run_agent 函數，傳入請求的訊息，並等待回應；run_in_threadpool 會把同步函式交給背景執行緒執行。
+        result = await run_in_threadpool(run_agent, request.message)
+
+        # 2. 回應請求
+        return ChatResponse(response=result)
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 if __name__ == "__main__":

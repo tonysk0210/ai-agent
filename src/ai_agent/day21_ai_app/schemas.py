@@ -2,10 +2,10 @@ from pydantic import BaseModel
 
 
 # 定義研究請求的資料格式
-class ResearchRequest(BaseModel):
-    topic: str
+class ChatRequest(BaseModel):
+    message: str
 
 
 # 定義研究回應的資料格式
-class ResearchResponse(BaseModel):
-    report: str
+class ChatResponse(BaseModel):
+    response: str
