@@ -1,9 +1,10 @@
 from langchain.agents import create_agent
+from langchain_ollama import ChatOllama
 
-from ..model import model
 from mcp_tools import client
 from rag_tool import search_knowledge
 
+model = ChatOllama(model="qwen3:1.7b")
 
 async def create_agent_instance():
     # 1. 取得 MCP 工具
